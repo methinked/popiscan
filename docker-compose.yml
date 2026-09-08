@@ -1,10 +1,10 @@
 services:
-  photomatch-web:
+  popiscan-web:
     image: nginx:alpine
-    container_name: photomatch-web
+    container_name: popiscan-web
     restart: unless-stopped
     ports:
-      - "8092:80"
+      - "8096:80"
     volumes:
       - ./site:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
