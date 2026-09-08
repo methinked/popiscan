@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PopiScan — POPIA Photo Compliance & Face Consent Scanner</title>
   <meta name="description" content="Simple client-side POPIA photo consent tracker and face compliance scanner. 100% in-browser processing — zero photos or biometric data leave your device.">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
   <div class="app-shell">
@@ -16,7 +16,7 @@
           <div class="brand-icon">🛡️</div>
           <div>
             <div class="brand-name">PopiScan <span class="brand-tag">popiscan.co.za</span></div>
-            <div class="brand-sub">Simple POPIA Photo Compliance & Face Consent Scanner</div>
+            <div class="brand-sub">Simple POPIA Photo Compliance &amp; Face Consent Scanner</div>
           </div>
         </div>
         <div class="header-status">
@@ -54,8 +54,8 @@
         </button>
       </div>
       <div class="quick-actions">
-        <button id="btn-load-demo" class="btn btn-accent btn-sm">⚡ Load Demo Event Data</button>
-        <button id="btn-clear-all" class="btn btn-outline btn-sm">Reset</button>
+        <button id="btn-load-demo" class="btn btn-accent btn-sm" title="Load sample subjects and event photos">✨ Load Sample Data</button>
+        <button id="btn-clear-all" class="btn btn-outline btn-sm" title="Clear current photos or reset workspace">🗑️ Clear Current Data</button>
       </div>
     </nav>
 
@@ -98,7 +98,7 @@
                 <span>Select Photos</span>
                 <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
               </label>
-              <button id="btn-demo-photos-only" class="btn btn-secondary">Use Sample Event Album</button>
+              <button id="btn-demo-photos-only" class="btn btn-secondary">✨ Load Sample Data</button>
             </div>
           </div>
         </div>
@@ -136,7 +136,10 @@
           <div class="empty-state">
             <div class="empty-icon">📷</div>
             <div class="empty-title">No photos loaded yet</div>
-            <p class="empty-desc">Upload photos above or click <strong>"Load Demo Event Data"</strong> to test the real-time compliance scanner with preconfigured sample subjects and event pictures.</p>
+            <p class="empty-desc">Drop event photos above to scan for POPIA consent, or click <strong>"Load Sample Data"</strong> to test the compliance scanner with sample subjects and event pictures.</p>
+            <div style="margin-top: 14px;">
+              <button id="btn-empty-load-demo" class="btn btn-primary btn-sm">✨ Load Sample Data</button>
+            </div>
           </div>
         </div>
       </section>
@@ -150,7 +153,8 @@
           </div>
           <div class="roster-actions">
             <button id="btn-add-subject-modal" class="btn btn-primary btn-sm">+ Register Subject</button>
-            <button id="btn-load-sample-roster" class="btn btn-outline btn-sm">Reload Default Roster</button>
+            <button id="btn-load-sample-roster" class="btn btn-outline btn-sm">Load Sample Roster</button>
+            <button id="btn-clear-roster" class="btn btn-ghost btn-sm" style="color: var(--danger, #ef4444);">Clear Registry</button>
           </div>
         </div>
 
@@ -384,6 +388,40 @@
       </div>
     </div>
 
+    <!-- Clear Current Data Modal -->
+    <div id="modal-clear-data" class="modal-backdrop" style="display: none;">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Clear Current Data</h3>
+          <button id="modal-clear-close" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 16px; color: var(--text-muted); font-size: 14px;">
+            Choose how you would like to reset your PopiScan workspace:
+          </p>
+          <div class="clear-options-list">
+            <button type="button" id="btn-action-clear-photos" class="clear-choice-card">
+              <div class="clear-choice-icon">📸</div>
+              <div class="clear-choice-info">
+                <div class="clear-choice-title">Clear Scanned Photos Only</div>
+                <div class="clear-choice-desc">Removes all analyzed photos and resets metrics to zero. Keeps your Consent Registry intact.</div>
+              </div>
+            </button>
+            <button type="button" id="btn-action-clear-everything" class="clear-choice-card clear-choice-card-danger">
+              <div class="clear-choice-icon">🗑️</div>
+              <div class="clear-choice-info">
+                <div class="clear-choice-title">Clear Everything (Photos &amp; Registry)</div>
+                <div class="clear-choice-desc">Completely resets PopiScan to a fresh new page. Clears photos, metrics, and removes all saved subjects from local storage.</div>
+              </div>
+            </button>
+          </div>
+          <div class="form-actions" style="margin-top: 20px; justify-content: flex-end;">
+            <button type="button" id="btn-cancel-clear" class="btn btn-ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- About / POPIA Architecture Modal -->
     <div id="modal-about" class="modal-backdrop" style="display: none;">
       <div class="modal-dialog">
@@ -422,6 +460,6 @@
   <script src="js/vendor/tracking-min.js"></script>
   <script src="js/vendor/face-min.js"></script>
   <!-- Application Logic -->
-  <script src="js/popia-engine.js"></script>
+  <script src="js/popia-engine.js?v=3"></script>
 </body>
 </html>

@@ -1287,3 +1287,125 @@ body {
   }
 }
 
+/* ---------------- Clear Data Modal & Options ---------------- */
+.clear-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.clear-choice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.clear-choice-card:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-dark);
+}
+
+.clear-choice-card-danger:hover {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.clear-choice-icon {
+  font-size: 24px;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.clear-choice-info {
+  flex: 1;
+}
+
+.clear-choice-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.clear-choice-card-danger .clear-choice-title {
+  color: var(--danger);
+}
+
+.clear-choice-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* ---------------- Toast Notifications ---------------- */
+.app-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.app-toast.toast-success {
+  background: #15803d;
+}
+
+.app-toast.toast-danger {
+  background: #b91c1c;
+}
+
+.app-toast.toast-info {
+  background: #0369a1;
+}
+
+@media (max-width: 640px) {
+  .subnav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .nav-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .quick-actions {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+  .quick-actions .btn {
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+
+

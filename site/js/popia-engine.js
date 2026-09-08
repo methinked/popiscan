@@ -7,8 +7,8 @@
   'use strict';
 
   // --- STATE & PERSISTENCE ---
-  const STORAGE_KEY_ROSTER = 'photomatch_roster_v1';
-  const STORAGE_KEY_AUDIT = 'photomatch_audit_v1';
+  const STORAGE_KEY_ROSTER = 'popiscan_roster_v2';
+  const STORAGE_KEY_AUDIT = 'popiscan_audit_v2';
 
   let roster = [];
   let scannedPhotos = [];
@@ -76,17 +76,21 @@
 
   // --- INITIALIZATION ---
   function init() {
+    // Clear legacy prototype keys if any
+    try {
+      localStorage.removeItem('photomatch_roster_v1');
+      localStorage.removeItem('photomatch_audit_v1');
+    } catch (e) {}
+
     loadRoster();
     setupTabs();
     setupEventListeners();
     setupDropZone();
     renderRosterGrid();
+    renderPhotoGrid();
     updateMetrics();
 
-    // Auto-load demo on first visit
-    if (scannedPhotos.length === 0) {
-      loadDemoDataset();
-    }
+    // Default: fresh new page! (No auto-loading of demo photos)
   }
 
   function loadRoster() {
@@ -95,11 +99,11 @@
       try {
         roster = JSON.parse(saved);
       } catch (e) {
-        roster = [...DEFAULT_ROSTER];
+        roster = [];
       }
     } else {
-      roster = [...DEFAULT_ROSTER];
-      saveRoster();
+      // By default start with a clean fresh page
+      roster = [];
     }
   }
 
@@ -134,12 +138,20 @@
     // Quick action buttons
     document.getElementById('btn-load-demo').addEventListener('click', loadDemoDataset);
     document.getElementById('btn-demo-photos-only').addEventListener('click', loadDemoDataset);
-    document.getElementById('btn-clear-all').addEventListener('click', resetAll);
-    document.getElementById('btn-load-sample-roster').addEventListener('click', () => {
-      roster = [...DEFAULT_ROSTER];
-      saveRoster();
-      alert('Roster reset to default POPIA test subjects.');
-    });
+    const emptyLoadBtn = document.getElementById('btn-empty-load-demo');
+    if (emptyLoadBtn) emptyLoadBtn.addEventListener('click', loadDemoDataset);
+
+    // Clear data actions
+    document.getElementById('btn-clear-all').addEventListener('click', openClearModal);
+    document.getElementById('btn-action-clear-photos').addEventListener('click', clearScannedPhotosOnly);
+    document.getElementById('btn-action-clear-everything').addEventListener('click', clearEverything);
+    document.getElementById('modal-clear-close').addEventListener('click', closeClearModal);
+    document.getElementById('btn-cancel-clear').addEventListener('click', closeClearModal);
+
+    // Roster actions
+    document.getElementById('btn-load-sample-roster').addEventListener('click', loadSampleRosterOnly);
+    const btnClearRoster = document.getElementById('btn-clear-roster');
+    if (btnClearRoster) btnClearRoster.addEventListener('click', clearRosterOnly);
 
     // About modal
     const modalAbout = document.getElementById('modal-about');
@@ -162,7 +174,8 @@
     });
 
     // Close on backdrop click
-    [modalAbout, modalAdd, modalInspector].forEach(m => {
+    const modalClear = document.getElementById('modal-clear-data');
+    [modalAbout, modalAdd, modalInspector, modalClear].filter(Boolean).forEach(m => {
       m.addEventListener('click', (e) => {
         if (e.target === m) m.style.display = 'none';
       });
@@ -434,6 +447,10 @@
 
   // --- DEMO DATASET GENERATOR ---
   async function loadDemoDataset() {
+    // Populate demo subjects into roster so demo photos match the consent registry
+    roster = [...DEFAULT_ROSTER];
+    saveRoster();
+
     scannedPhotos = [];
 
     // Photo 1: Award Ceremony (Sarah & Thabo -> All Consented)
@@ -469,8 +486,15 @@
     ]);
 
     scannedPhotos = [photo1, photo2, photo3];
+    currentFilter = 'all';
+    document.querySelectorAll('.btn-filter').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-filter') === 'all');
+    });
+
     renderPhotoGrid();
+    renderRosterGrid();
     updateMetrics();
+    showToast('✨ Sample event data and consent registry loaded', 'success');
   }
 
   function createDemoSceneCanvas(title, faceList) {
@@ -560,11 +584,26 @@
     document.getElementById('filter-count-review').textContent = scannedPhotos.filter(p => p.compliance === 'REVIEW').length;
 
     if (filtered.length === 0) {
-      grid.innerHTML = `<div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-title">No photos match filter "${currentFilter}"</div>
-        <p class="empty-desc">Switch filters or upload new event pictures.</p>
-      </div>`;
+      if (scannedPhotos.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📷</div>
+            <div class="empty-title">No photos loaded yet</div>
+            <p class="empty-desc">Drop event photos above to scan for POPIA consent, or click <strong>"Load Sample Data"</strong> to test the compliance scanner with sample subjects and event pictures.</p>
+            <div style="margin-top: 14px;">
+              <button id="btn-empty-load-demo" class="btn btn-primary btn-sm">✨ Load Sample Data</button>
+            </div>
+          </div>
+        `;
+        const emptyBtn = document.getElementById('btn-empty-load-demo');
+        if (emptyBtn) emptyBtn.addEventListener('click', loadDemoDataset);
+      } else {
+        grid.innerHTML = `<div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No photos match filter "${currentFilter}"</div>
+          <p class="empty-desc">Switch filters or upload new event pictures.</p>
+        </div>`;
+      }
       return;
     }
 
@@ -809,6 +848,20 @@
 
     document.getElementById('badge-roster-count').textContent = roster.length;
 
+    if (filtered.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1; padding: 40px 20px;">
+          <div class="empty-icon">👥</div>
+          <div class="empty-title">${searchQuery ? 'No matching subjects found' : 'No subjects in Consent Registry'}</div>
+          <p class="empty-desc">${searchQuery ? 'Try adjusting your search query.' : 'Register individuals above with "+ Register Subject", or click "Load Sample Roster" to load test subjects.'}</p>
+          ${!searchQuery ? '<div style="margin-top: 14px;"><button id="btn-empty-load-sample-roster" class="btn btn-outline btn-sm">Load Sample Roster</button></div>' : ''}
+        </div>
+      `;
+      const emptyBtn = document.getElementById('btn-empty-load-sample-roster');
+      if (emptyBtn) emptyBtn.addEventListener('click', loadSampleRosterOnly);
+      return;
+    }
+
     grid.innerHTML = filtered.map(sub => {
       let badgeClass = 'face-tag-consented';
       let badgeLabel = 'Consented';
@@ -858,6 +911,7 @@
 
     roster.push(newSubject);
     saveRoster();
+    showToast(`Registered ${name} to Consent Registry`, 'success');
 
     document.getElementById('form-add-subject').reset();
     previewEl.innerHTML = 'No photo chosen';
@@ -869,6 +923,7 @@
     if (confirm('Remove this subject from the POPIA consent registry?')) {
       roster = roster.filter(s => s.id !== subjectId);
       saveRoster();
+      showToast('Subject removed from Consent Registry.', 'info');
     }
   }
 
@@ -966,12 +1021,99 @@
     document.getElementById('badge-roster-count').textContent = roster.length;
   }
 
-  function resetAll() {
-    if (confirm('Reset scanned photos and restore clean state?')) {
-      scannedPhotos = [];
-      renderPhotoGrid();
-      updateMetrics();
+  // --- TOAST NOTIFICATIONS ---
+  function showToast(message, type = 'info') {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'app-toast';
+      toast.className = 'app-toast';
+      document.body.appendChild(toast);
     }
+    toast.textContent = message;
+    toast.className = `app-toast toast-${type} show`;
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.className = 'app-toast';
+    }, 3000);
+  }
+
+  // --- WORKSPACE CLEAR & RESET MODAL ---
+  function openClearModal() {
+    if (scannedPhotos.length === 0 && roster.length === 0) {
+      showToast('Workspace is already completely fresh and clean.', 'info');
+      return;
+    }
+    const modal = document.getElementById('modal-clear-data');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeClearModal() {
+    const modal = document.getElementById('modal-clear-data');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function clearScannedPhotosOnly() {
+    scannedPhotos = [];
+    activeInspectedPhoto = null;
+    currentFilter = 'all';
+    document.querySelectorAll('.btn-filter').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-filter') === 'all');
+    });
+
+    const modalInspector = document.getElementById('modal-inspector');
+    if (modalInspector) modalInspector.style.display = 'none';
+    closeClearModal();
+
+    renderPhotoGrid();
+    updateMetrics();
+    showToast('📸 Scanned photos cleared. Clean workspace restored.', 'info');
+  }
+
+  function clearEverything() {
+    scannedPhotos = [];
+    activeInspectedPhoto = null;
+    roster = [];
+    try {
+      localStorage.removeItem(STORAGE_KEY_ROSTER);
+      localStorage.removeItem(STORAGE_KEY_AUDIT);
+    } catch (e) {}
+
+    currentFilter = 'all';
+    document.querySelectorAll('.btn-filter').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-filter') === 'all');
+    });
+
+    const modalInspector = document.getElementById('modal-inspector');
+    if (modalInspector) modalInspector.style.display = 'none';
+    closeClearModal();
+
+    renderPhotoGrid();
+    renderRosterGrid();
+    updateMetrics();
+    showToast('🗑️ All data cleared. PopiScan reset to fresh state.', 'danger');
+  }
+
+  function clearRosterOnly() {
+    if (roster.length === 0) {
+      showToast('Consent Registry is already empty.', 'info');
+      return;
+    }
+    if (confirm('Clear all registered individuals from the POPIA Consent Registry?')) {
+      roster = [];
+      try {
+        localStorage.removeItem(STORAGE_KEY_ROSTER);
+      } catch (e) {}
+      renderRosterGrid();
+      updateMetrics();
+      showToast('👥 Consent Registry cleared.', 'info');
+    }
+  }
+
+  function loadSampleRosterOnly() {
+    roster = [...DEFAULT_ROSTER];
+    saveRoster();
+    showToast('👥 Sample consent registry loaded (4 subjects)', 'success');
   }
 
   // --- EXPORT GLOBAL API ---
@@ -989,7 +1131,14 @@
         });
       }
     },
-    deleteSubject
+    deleteSubject,
+    loadDemoDataset,
+    loadSampleRosterOnly,
+    clearScannedPhotosOnly,
+    clearEverything,
+    clearRosterOnly,
+    openClearModal,
+    showToast
   };
   window.PopiScanEngine = window.PhotoMatchEngine;
 
