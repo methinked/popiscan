@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PopiScan — POPIA Photo Compliance & Face Consent Scanner</title>
+  <meta name="description" content="Simple client-side POPIA photo consent tracker and face compliance scanner. 100% in-browser processing — zero photos or biometric data leave your device.">
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Masthead -->
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="brand">
+          <div class="brand-icon">🛡️</div>
+          <div>
+            <div class="brand-name">PopiScan <span class="brand-tag">popiscan.co.za</span></div>
+            <div class="brand-sub">Simple POPIA Photo Compliance & Face Consent Scanner</div>
+          </div>
+        </div>
+        <div class="header-status">
+          <div class="privacy-badge">
+            <span class="status-pulse"></span>
+            <span>100% Client-Side Sandbox</span>
+            <span class="privacy-pill">Zero Server Storage</span>
+          </div>
+          <button id="btn-about" class="btn btn-ghost" title="About & Architecture">ℹ️ About POPIA</button>
+          <a href="liability.html" class="btn btn-ghost" title="Legal Disclaimer & Liability Notice">⚖️ Liability</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Bar / Mode Tabs -->
+    <nav class="subnav">
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-tab="scanner">
+          <span class="tab-icon">📸</span> Batch Scanner
+          <span id="badge-scanned-count" class="tab-badge">0</span>
+        </button>
+        <button class="tab-btn" data-tab="roster">
+          <span class="tab-icon">👥</span> Consent Registry
+          <span id="badge-roster-count" class="tab-badge">0</span>
+        </button>
+        <button class="tab-btn" data-tab="audit">
+          <span class="tab-icon">📋</span> POPIA Audit & Certificate
+        </button>
+        <button class="tab-btn" data-tab="liability">
+          <span class="tab-icon">⚖️</span> Liability &amp; Disclaimer
+        </button>
+      </div>
+      <div class="quick-actions">
+        <button id="btn-load-demo" class="btn btn-accent btn-sm">⚡ Load Demo Event Data</button>
+        <button id="btn-clear-all" class="btn btn-outline btn-sm">Reset</button>
+      </div>
+    </nav>
+
+    <!-- Metrics Bar -->
+    <section class="metrics-bar">
+      <div class="metric-card">
+        <span class="metric-label">Photos Analyzed</span>
+        <span id="metric-total-photos" class="metric-val">0</span>
+      </div>
+      <div class="metric-card metric-success">
+        <span class="metric-label">Compliant (Passed)</span>
+        <span id="metric-passed-photos" class="metric-val">0</span>
+      </div>
+      <div class="metric-card metric-danger">
+        <span class="metric-label">POPIA Violations</span>
+        <span id="metric-violation-photos" class="metric-val">0</span>
+      </div>
+      <div class="metric-card metric-warning">
+        <span class="metric-label">Faces Under Review</span>
+        <span id="metric-unknown-faces" class="metric-val">0</span>
+      </div>
+      <div class="metric-card metric-info">
+        <span class="metric-label">Redacted / Sanitized</span>
+        <span id="metric-redacted-photos" class="metric-val">0</span>
+      </div>
+    </section>
+
+    <!-- Main Content Panels -->
+    <main class="main-content">
+      <!-- TAB 1: BATCH SCANNER -->
+      <section id="panel-scanner" class="tab-panel active">
+        <!-- Upload Zone -->
+        <div class="upload-container">
+          <div id="drop-zone" class="drop-zone">
+            <div class="drop-icon">📁</div>
+            <div class="drop-title">Drop event photos here or click to select</div>
+            <p class="drop-desc">JPEG, PNG, WebP supported. All processing occurs locally on your CPU/GPU — no image ever leaves this browser window.</p>
+            <div class="drop-buttons">
+              <label for="file-input" class="btn btn-primary">
+                <span>Select Photos</span>
+                <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+              </label>
+              <button id="btn-demo-photos-only" class="btn btn-secondary">Use Sample Event Album</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scanning Progress Bar -->
+        <div id="scan-progress-container" class="progress-bar-container" style="display: none;">
+          <div class="progress-label">
+            <span id="scan-progress-text">Scanning faces across photos...</span>
+            <span id="scan-progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="scan-progress-fill" class="progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Filter / Filter Controls -->
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <span class="toolbar-title">Event Photos</span>
+            <div class="filter-group">
+              <button class="btn-filter active" data-filter="all">All (<span id="filter-count-all">0</span>)</button>
+              <button class="btn-filter" data-filter="violation">🚨 Violations (<span id="filter-count-violation">0</span>)</button>
+              <button class="btn-filter" data-filter="passed">✅ Compliant (<span id="filter-count-passed">0</span>)</button>
+              <button class="btn-filter" data-filter="review">⚠️ Needs Review (<span id="filter-count-review">0</span>)</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-bulk-redact" class="btn btn-danger btn-sm" disabled>🛡️ Redact All Violations</button>
+            <button id="btn-export-audit-top" class="btn btn-outline btn-sm">Export Audit Log</button>
+          </div>
+        </div>
+
+        <!-- Photo Grid -->
+        <div id="photo-grid" class="photo-grid">
+          <div class="empty-state">
+            <div class="empty-icon">📷</div>
+            <div class="empty-title">No photos loaded yet</div>
+            <p class="empty-desc">Upload photos above or click <strong>"Load Demo Event Data"</strong> to test the real-time compliance scanner with preconfigured sample subjects and event pictures.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CONSENT REGISTRY (ROSTER) -->
+      <section id="panel-roster" class="tab-panel">
+        <div class="roster-header">
+          <div>
+            <h2>POPIA Consent Registry</h2>
+            <p class="section-desc">Manage individuals, minors, and their formal photo consent preferences (Section 11 & Section 35 POPIA).</p>
+          </div>
+          <div class="roster-actions">
+            <button id="btn-add-subject-modal" class="btn btn-primary btn-sm">+ Register Subject</button>
+            <button id="btn-load-sample-roster" class="btn btn-outline btn-sm">Reload Default Roster</button>
+          </div>
+        </div>
+
+        <!-- Roster Search & Stats -->
+        <div class="roster-filters">
+          <input type="text" id="roster-search" class="input-search" placeholder="Search subjects by name or ID...">
+          <div class="roster-legend">
+            <span class="legend-item"><span class="dot dot-green"></span> Consented (Full Media)</span>
+            <span class="legend-item"><span class="dot dot-amber"></span> Internal Use Only</span>
+            <span class="legend-item"><span class="dot dot-red"></span> Opted Out / Restricted</span>
+          </div>
+        </div>
+
+        <!-- Roster Grid -->
+        <div id="roster-grid" class="roster-grid"></div>
+      </section>
+
+      <!-- TAB 3: POPIA AUDIT CERTIFICATE -->
+      <section id="panel-audit" class="tab-panel">
+        <div class="audit-container">
+          <div class="audit-card">
+            <div class="audit-header">
+              <div class="audit-badge">Official Record</div>
+              <h2>POPIA Compliance Verification Certificate</h2>
+              <p class="audit-timestamp" id="audit-timestamp">Generated on: Sept 8, 2026</p>
+            </div>
+
+            <div class="audit-summary-grid">
+              <div class="audit-item">
+                <span class="audit-k">Organization / Controller</span>
+                <span class="audit-v">Local Organization / School Event</span>
+              </div>
+              <div class="audit-item">
+                <span class="audit-k">Legal Standard</span>
+                <span class="audit-v">POPIA Act 4 of 2013 (RSA) & Sect 35 (Minors)</span>
+              </div>
+              <div class="audit-item">
+                <span class="audit-k">Architectural Ingestion Model</span>
+                <span class="audit-v text-success">Zero-Knowledge Client Sandbox (0 Biometrics Stored Externally)</span>
+              </div>
+              <div class="audit-item">
+                <span class="audit-k">Compliance Status</span>
+                <span id="audit-status-badge" class="badge-status">Pending Scan</span>
+              </div>
+            </div>
+
+            <h3>Scan Activity & Action Log</h3>
+            <div class="table-responsive">
+              <table class="audit-table">
+                <thead>
+                  <tr>
+                    <th>Photo Name</th>
+                    <th>Faces Detected</th>
+                    <th>Matched Subjects</th>
+                    <th>Consent Result</th>
+                    <th>Compliance Action</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-log-body">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted);">No scan logs yet. Run a batch scan to populate audit data.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Statutory Compliance & Liability Notice -->
+            <div class="legal-alert-box" style="margin-top: 24px; margin-bottom: 20px;">
+              <div class="legal-alert-title">
+                <span>⚠️</span>
+                <span>Statutory Compliance &amp; Operational Liability Notice</span>
+              </div>
+              <div class="legal-alert-desc">
+                This verification certificate and log are generated purely as an operational tracking aid on an <strong>"AS IS"</strong> basis without warranty. This system does not constitute formal legal counsel or statutory clearance under South African POPIA Act 4 of 2013. The responsible party bears sole legal liability for media publication, guardian consent, and records veracity.
+                <a href="liability.html" target="_blank" class="footer-link" style="font-weight: 600; margin-left: 4px;">Read Full Liability Disclaimer &rarr;</a>
+              </div>
+            </div>
+
+            <div class="audit-footer-actions">
+              <button id="btn-download-audit-json" class="btn btn-outline">Export Audit JSON</button>
+              <button id="btn-print-audit" class="btn btn-primary">Print / Save as PDF Certificate</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: LEGAL & LIABILITY DISCLAIMER -->
+      <section id="panel-liability" class="tab-panel">
+        <div class="legal-container">
+          <div class="legal-card">
+            <div class="legal-header">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <span class="legal-badge">Legal Notice &amp; Terms of Use</span>
+                  <h2>Legal Disclaimer &amp; Limitation of Liability</h2>
+                  <p class="legal-subtitle">Standard Operational Disclaimer, Algorithmic Limits &amp; POPIA Act 4 of 2013 Notice</p>
+                </div>
+                <a href="liability.html" target="_blank" class="btn btn-outline btn-sm">Open Standalone Page ↗</a>
+              </div>
+            </div>
+
+            <!-- Prominent Executive Warning Box -->
+            <div class="legal-alert-box">
+              <div class="legal-alert-title">
+                <span>⚠️</span>
+                <span>Plain-Language Notice: Don't Rely Blindly On This — It's Just To Help (As-Is)</span>
+              </div>
+              <div class="legal-alert-desc">
+                <strong>PopiScan is provided strictly on an "AS IS" and "AS AVAILABLE" basis without warranty of any kind.</strong> It is designed to assist event organizers, schools, and photographers with internal consent bookkeeping. It is <em>not</em> legal advice, <em>not</em> a substitute for an Information Officer audit, and provides <em>no statutory warranty or immunity</em>. Facial detection is probabilistic and subject to false negatives. You and your organization are solely responsible for obtaining valid consent and deciding which photos are published.
+              </div>
+            </div>
+
+            <div class="legal-section">
+              <h3>1. Provision of Software "As Is" &amp; No Warranty</h3>
+              <p>PopiScan (popiscan.co.za) is provided free of charge on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis. The authors and operators disclaim all express, implied, and statutory warranties, including warranties of merchantability, fitness for a particular purpose, non-infringement, algorithmic accuracy, and uninterrupted operation.</p>
+              <div class="legal-caps-box">
+                YOU ASSUME TOTAL RESPONSIBILITY AND RISK FOR YOUR USE OF THIS SOFTWARE. NO WARRANTY IS MADE THAT SCANNING WILL DETECT EVERY FACE OR MEET REGULATORY REQUIREMENTS.
+              </div>
+            </div>
+
+            <div class="legal-section">
+              <h3>2. Operational Aid Only — Not Legal Advice</h3>
+              <p>PopiScan is not a law firm or registered regulatory body. Status badges ("Compliant", "Violation", "Review") and generated audit certificates reflect automated heuristics evaluated against local inputs. They do not constitute official statutory certification or legal advice under the Protection of Personal Information Act 4 of 2013 (POPIA).</p>
+            </div>
+
+            <div class="legal-section">
+              <h3>3. Algorithmic Limitations &amp; Inherent Probabilistic Nature</h3>
+              <p>In-browser face detection (Viola-Jones / Haar cascades) is probabilistic. False negatives (missed faces due to lighting, angles, occlusions, sunglasses, headwear, or crowds) and false positives can occur. <strong>Mandatory human visual inspection is required</strong> before publishing or distributing any photograph.</p>
+            </div>
+
+            <div class="legal-section">
+              <h3>4. Sole Responsibility of the User ("Responsible Party")</h3>
+              <p>Under POPIA Section 1, your organization is the legal <strong>Responsible Party</strong>. You hold sole accountability for verifying parental consent for minors (Section 35), managing consent records, honoring opt-outs, and making publishing decisions.</p>
+            </div>
+
+            <div class="legal-section">
+              <h3>5. Comprehensive Limitation of Liability</h3>
+              <p>Under no legal theory (contract, delict, negligence, or statute) shall the developers, contributors, or hosts of PopiScan be liable for:</p>
+              <ul>
+                <li>Administrative fines or enforcement actions by the Information Regulator of South Africa (including Section 109 fines up to R10,000,000);</li>
+                <li>Civil claims, privacy infringement damages, or lawsuits under Section 99 of POPIA;</li>
+                <li>Legal defense costs, lost profits, business interruption, or emotional distress damages.</li>
+              </ul>
+            </div>
+
+            <div class="legal-section">
+              <h3>6. 100% Client-Side Architecture &amp; Zero Data Retention</h3>
+              <p>All photo processing, face detection, and redaction occur 100% within your web browser's local sandbox memory. No photos, biometric descriptors, or roster records are ever transmitted to or stored on our servers. The site operators never possess your data and are not an "Operator" under POPIA.</p>
+            </div>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <a href="liability.html" target="_blank" class="footer-link" style="font-size: 13px; font-weight: 600;">View Complete Legal Terms &amp; Full Text &rarr;</a>
+              <button onclick="window.print()" class="btn btn-outline btn-sm">🖨️ Print Disclaimer</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Photo Detail / Inspector Modal -->
+    <div id="modal-inspector" class="modal-backdrop" style="display: none;">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3 id="modal-photo-title">Photo Inspector</h3>
+            <span id="modal-photo-badge" class="badge-status">Status</span>
+          </div>
+          <button id="modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body inspector-body">
+          <div class="inspector-canvas-wrap">
+            <canvas id="inspector-canvas"></canvas>
+          </div>
+          <div class="inspector-sidebar">
+            <h4>Detected Faces</h4>
+            <div id="inspector-face-list" class="face-list"></div>
+            <div class="redaction-controls">
+              <h4>Sanitization & Redaction</h4>
+              <p class="control-desc">Instantly blur or mask non-consenting individuals to make this photo POPIA compliant for public release.</p>
+              <div class="redact-btn-group">
+                <button id="btn-redact-blur" class="btn btn-outline btn-sm">Blur Faces</button>
+                <button id="btn-redact-mask" class="btn btn-outline btn-sm">Black Bar</button>
+                <button id="btn-redact-pixel" class="btn btn-outline btn-sm">Pixelate</button>
+                <button id="btn-redact-reset" class="btn btn-ghost btn-sm">Reset</button>
+              </div>
+              <button id="btn-download-inspected" class="btn btn-primary" style="width: 100%; margin-top: 12px;">⬇️ Download Compliant Photo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Subject Modal -->
+    <div id="modal-add-subject" class="modal-backdrop" style="display: none;">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Register Subject Consent</h3>
+          <button id="modal-add-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="form-add-subject" class="modal-body form-body">
+          <div class="form-group">
+            <label for="sub-name">Full Name</label>
+            <input type="text" id="sub-name" class="form-input" placeholder="e.g. Liam Chen" required>
+          </div>
+          <div class="form-group">
+            <label for="sub-id">Identifier / Roll / Student ID</label>
+            <input type="text" id="sub-id" class="form-input" placeholder="e.g. STU-2026-088" required>
+          </div>
+          <div class="form-group">
+            <label for="sub-consent">POPIA Consent Preference</label>
+            <select id="sub-consent" class="form-input">
+              <option value="RESTRICTED">❌ RESTRICTED (Withheld / Do Not Photograph)</option>
+              <option value="CONSENTED" selected>✅ CONSENTED (Full Media Release)</option>
+              <option value="INTERNAL_ONLY">⚠️ INTERNAL ONLY (Internal Yearbook / School Only)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sub-notes">Consent Notes / Legal Guardian</label>
+            <input type="text" id="sub-notes" class="form-input" placeholder="e.g. Parent requested opt-out under Section 35">
+          </div>
+          <div class="form-group">
+            <label>Reference Face Photo</label>
+            <input type="file" id="sub-photo-input" accept="image/*" class="form-input">
+            <div id="sub-photo-preview" class="avatar-preview-box">No photo chosen</div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="btn-cancel-add-subject" class="btn btn-ghost">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save to Registry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- About / POPIA Architecture Modal -->
+    <div id="modal-about" class="modal-backdrop" style="display: none;">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Why Browser-First POPIA Compliance?</h3>
+          <button id="modal-about-close" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body about-content">
+          <p><strong>PopiScan</strong> (popiscan.co.za) is built on a 100% zero-knowledge client architecture:</p>
+          <ul class="about-points">
+            <li><strong>Zero Server Liability:</strong> Traditional face recognition requires uploading sensitive biometric images of children and staff to a cloud server, creating massive POPIA Section 19 security risk and data breach liability.</li>
+            <li><strong>100% Client-Side Processing:</strong> All facial feature detection, matching against your local roster, and privacy redaction happen strictly within your browser sandbox via WebAssembly and HTML5 Canvas.</li>
+            <li><strong>POPIA Section 35 Strict Adherence:</strong> Special personal information (biometric data of minors) is never transmitted across the network, stored in a remote database, or processed by third-party APIs.</li>
+            <li><strong>Immediate Anonymization:</strong> Flagged non-consenting individuals can be blurred, masked, or pixelated in one click before event photos are published or shared.</li>
+            <li><strong>Operational Assistance Only:</strong> Provided strictly "as-is" without warranty. See our <a href="liability.html" class="footer-link">Liability &amp; Legal Disclaimer</a> for full statutory terms.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>PopiScan • <strong>popiscan.co.za</strong> • POPIA Compliance Face Suite • 100% In-Browser Privacy Protection</div>
+      <div class="footer-links">
+        <a href="index.html" class="footer-link">Batch Scanner</a> • 
+        <a href="liability.html" class="footer-link">Liability &amp; Legal Disclaimer</a> • 
+        <span>Zero External Calls</span> • 
+        <span>Self-Hosted &amp; Private</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Face Detection & Tracking Scripts -->
+  <script src="js/vendor/tracking-min.js"></script>
+  <script src="js/vendor/face-min.js"></script>
+  <!-- Application Logic -->
+  <script src="js/popia-engine.js"></script>
+</body>
+</html>
