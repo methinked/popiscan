@@ -62,6 +62,13 @@ docker compose logs -f
 
 ---
 
-## 📄 License & Privacy Notice
+## 📄 License & Third-Party Notices
 
-Distributed under the MIT License. PopiScan is an open-source privacy compliance aid and does not provide formal legal counsel. All verification processing occurs strictly on the client device.
+Distributed under the **GNU General Public License v3.0 (GPL-3.0)**. See [`LICENSE`](LICENSE) for the full license text.
+
+### Third-Party Libraries
+PopiScan incorporates client-side computer vision libraries licensed under the permissive MIT License (fully compatible with GPL-3.0):
+- **[tracking.js](https://trackingjs.com)** & Viola-Jones face cascades — Copyright (c) Eduardo Lundgren (MIT License)
+- **[face-api.js](https://github.com/vladmandic/face-api)** — Copyright (c) Vlad Mandic / Vincent Mühler (MIT License)
+
+PopiScan is an open-source privacy compliance aid and does not provide formal legal counsel. All verification processing occurs strictly on the client device.
