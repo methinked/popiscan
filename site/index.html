@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PopiScan — POPIA Photo Compliance & Face Consent Scanner</title>
   <meta name="description" content="Simple client-side POPIA photo consent tracker and face compliance scanner. 100% in-browser processing — zero photos or biometric data leave your device.">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <div class="app-shell">
@@ -30,6 +30,7 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: -2px; margin-right: 4px;" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
               GitHub
             </a>
+            <a href="how-it-works.html" class="btn btn-ghost" title="How It Works: In-Browser Architecture & Algorithms">⚙️ How It Works</a>
             <button id="btn-about" class="btn btn-ghost" title="About & Architecture">ℹ️ About POPIA</button>
             <a href="liability.html" class="btn btn-ghost" title="Legal Disclaimer & Liability Notice">⚖️ Liability</a>
           </div>
@@ -94,7 +95,7 @@
           <div id="drop-zone" class="drop-zone">
             <div class="drop-icon">📁</div>
             <div class="drop-title">Drop event photos here or click to select</div>
-            <p class="drop-desc">JPEG, PNG, WebP supported. All processing occurs locally on your CPU/GPU — no image ever leaves this browser window.</p>
+            <p class="drop-desc">JPEG, PNG, WebP supported. All processing occurs locally on your CPU/GPU — no image ever leaves this browser window. (<a href="how-it-works.html" style="color: var(--primary); text-decoration: underline;">How it works</a>)</p>
             <div class="drop-buttons">
               <label for="file-input" class="btn btn-primary">
                 <span>Select Photos</span>
@@ -432,10 +433,10 @@
           <button id="modal-about-close" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body about-content">
-          <p><strong>PopiScan</strong> (popiscan.co.za) is built on a 100% zero-knowledge client architecture:</p>
+          <p><strong>PopiScan</strong> (popiscan.co.za) is built on a 100% zero-knowledge client architecture (<a href="how-it-works.html" class="footer-link" style="text-decoration: underline; font-weight: 600;">Technical &amp; Mathematical Specification</a>):</p>
           <ul class="about-points">
             <li><strong>Zero Server Liability:</strong> Traditional face recognition requires uploading sensitive biometric images of children and staff to a cloud server, creating massive POPIA Section 19 security risk and data breach liability.</li>
-            <li><strong>100% Client-Side Processing:</strong> All facial feature detection, matching against your local roster, and privacy redaction happen strictly within your browser sandbox via WebAssembly and HTML5 Canvas.</li>
+            <li><strong>100% Client-Side Processing:</strong> All facial feature detection, matching against your local roster, and privacy redaction happen strictly within your browser sandbox via WebAssembly and HTML5 Canvas. (<a href="how-it-works.html" class="footer-link" style="text-decoration: underline;">How it works</a>)</li>
             <li><strong>Open Source &amp; Auditable:</strong> The entire codebase is open source under GPLv3 and available for independent security audit on <a href="https://github.com/methinked/popiscan" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>.</li>
             <li><strong>POPIA Section 35 Strict Adherence:</strong> Special personal information (biometric data of minors) is never transmitted across the network, stored in a remote database, or processed by third-party APIs.</li>
             <li><strong>Immediate Anonymization:</strong> Flagged non-consenting individuals can be blurred, masked, or pixelated in one click before event photos are published or shared.</li>
@@ -450,6 +451,7 @@
       <div>PopiScan • <strong>popiscan.co.za</strong> • POPIA Compliance Face Suite • 100% In-Browser Privacy Protection</div>
       <div class="footer-links">
         <a href="index.html" class="footer-link">Batch Scanner</a> • 
+        <a href="how-it-works.html" class="footer-link">How It Works</a> • 
         <a href="liability.html" class="footer-link">Liability &amp; Legal Disclaimer</a> • 
         <a href="https://github.com/methinked/popiscan" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Source &amp; Audit</a> • 
         <span>Zero External Calls</span>

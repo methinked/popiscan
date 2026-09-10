@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How It Works &amp; Technical Architecture — PopiScan (popiscan.co.za)</title>
+  <meta name="description" content="Technical deep-dive into PopiScan's 100% in-browser face detection, consent matching, and privacy redaction pipeline. Learn how client-side algorithms, integral images, and sandboxed memory guarantee zero cloud data leaks under POPIA.">
+  <link rel="stylesheet" href="css/style.css?v=5">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Masthead -->
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="brand">
+          <div class="brand-icon">🛡️</div>
+          <div>
+            <div class="brand-name">PopiScan <span class="brand-tag">popiscan.co.za</span></div>
+            <div class="brand-sub">Simple POPIA Photo Compliance &amp; Face Consent Scanner</div>
+          </div>
+        </div>
+        <div class="header-status">
+          <div class="privacy-badge">
+            <span class="status-pulse"></span>
+            <span>100% Client-Side Sandbox</span>
+            <span class="privacy-pill">Zero Server Storage</span>
+          </div>
+          <div class="header-links">
+            <a href="https://github.com/methinked/popiscan" target="_blank" rel="noopener noreferrer" class="btn btn-ghost" title="Source Code &amp; Security Audit on GitHub">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="display: inline-block; vertical-align: -2px; margin-right: 4px;" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              GitHub
+            </a>
+            <a href="liability.html" class="btn btn-ghost" title="Legal Disclaimer &amp; Liability Notice">⚖️ Liability</a>
+            <a href="index.html" class="btn btn-primary btn-sm">← Back to Scanner</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="tech-container">
+      <div class="tech-card">
+        <!-- Header -->
+        <div class="tech-header">
+          <span class="tech-badge">Zero-Knowledge Architecture &amp; Algorithmic Specification</span>
+          <h1>How PopiScan Works: In-Browser Privacy &amp; Mathematics</h1>
+          <p class="tech-subtitle">
+            A comprehensive guide explaining how PopiScan processes photos entirely inside your device's browser sandbox, the computer vision algorithms powering face detection and consent matching, and why zero biometric data ever leaves your computer.
+          </p>
+        </div>
+
+        <!-- Quick Jump Links -->
+        <div class="legal-quick-nav">
+          <a href="#section-tldr" class="legal-nav-tag">💡 The TL;DR</a>
+          <a href="#section-sandbox" class="legal-nav-tag">🔒 Browser Sandbox &amp; Privacy</a>
+          <a href="#section-viola-jones" class="legal-nav-tag">📐 Algorithm 1: Viola-Jones &amp; Haar Math</a>
+          <a href="#section-embeddings" class="legal-nav-tag">🧠 Algorithm 2: Biometric Embeddings</a>
+          <a href="#section-redaction" class="legal-nav-tag">🎨 Algorithm 3: Canvas Redaction Math</a>
+          <a href="#section-comparison" class="legal-nav-tag">⚖️ PopiScan vs Cloud AI</a>
+          <a href="#section-popia" class="legal-nav-tag">🇿🇦 Legal Grounding (POPIA Act 4)</a>
+          <a href="#section-audit" class="legal-nav-tag">🔍 How to Audit Yourself</a>
+        </div>
+
+        <!-- ================= SECTION 1: TL;DR ================= -->
+        <section id="section-tldr">
+          <div class="tldr-box">
+            <div class="tldr-title">
+              <span>💡</span>
+              <span>The TL;DR — High-Level Plain English Explanation</span>
+            </div>
+            <div class="tldr-desc">
+              <strong>PopiScan is not a website that uploads your photos. It is an offline-capable software program delivered directly into your browser tab.</strong>
+              When you drop photos into PopiScan, your images never travel across the internet, touch a server, or enter an external database. Your computer’s own processor performs 100% of the face detection, consent checks, and image redactions inside your browser's private working memory (RAM).
+            </div>
+
+            <div class="tldr-steps">
+              <div class="tldr-step-card">
+                <span class="tldr-step-num">Step 1</span>
+                <div class="tldr-step-title">Photos Read into RAM</div>
+                <div class="tldr-step-text">Files are read into local volatile memory via HTML5 File APIs. No network requests are made.</div>
+              </div>
+              <div class="tldr-step-card">
+                <span class="tldr-step-num">Step 2</span>
+                <div class="tldr-step-title">On-Device Vision</div>
+                <div class="tldr-step-text">Client-side computer vision models locate face bounding boxes directly on hidden graphics canvases.</div>
+              </div>
+              <div class="tldr-step-card">
+                <span class="tldr-step-num">Step 3</span>
+                <div class="tldr-step-title">Local Roster Check</div>
+                <div class="tldr-step-text">Faces are checked against your consent registry stored strictly in your browser's isolated local storage.</div>
+              </div>
+              <div class="tldr-step-card">
+                <span class="tldr-step-num">Step 4</span>
+                <div class="tldr-step-title">Instant Redaction</div>
+                <div class="tldr-step-text">Restricted individuals are blurred, masked, or pixelated in memory before you download the safe file.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pipeline Flow Box -->
+          <div class="pipeline-diagram">
+            <div class="pipeline-node">
+              <div class="pipeline-node-icon">💻</div>
+              <div class="pipeline-node-name">Local Device (RAM)</div>
+              <div class="pipeline-node-detail">Photos loaded via drag &amp; drop into memory</div>
+            </div>
+            <div class="pipeline-connector">➔</div>
+            <div class="pipeline-node">
+              <div class="pipeline-node-icon">🎨</div>
+              <div class="pipeline-node-name">Hidden Canvas</div>
+              <div class="pipeline-node-detail">Rasterization into raw RGBA pixel arrays</div>
+            </div>
+            <div class="pipeline-connector">➔</div>
+            <div class="pipeline-node">
+              <div class="pipeline-node-icon">📐</div>
+              <div class="pipeline-node-name">Haar-Cascade Vision</div>
+              <div class="pipeline-node-detail">O(1) Integral Image contrast classification</div>
+            </div>
+            <div class="pipeline-connector">➔</div>
+            <div class="pipeline-node">
+              <div class="pipeline-node-icon">👥</div>
+              <div class="pipeline-node-name">Local Storage Registry</div>
+              <div class="pipeline-node-detail">POPIA Section 35 consent cross-referencing</div>
+            </div>
+            <div class="pipeline-connector">➔</div>
+            <div class="pipeline-node">
+              <div class="pipeline-node-icon">🛡️</div>
+              <div class="pipeline-node-name">Sanitized Export</div>
+              <div class="pipeline-node-detail">Permanent pixel overwrite &amp; local download</div>
+            </div>
+          </div>
+
+          <div class="tech-callout">
+            <div class="tech-callout-title">✈️ The Airplane Mode Proof</div>
+            <p>
+              You can test this right now: open PopiScan, turn on <strong>Airplane Mode</strong> or disconnect your Wi-Fi, and drag an album of 50 photos into the scanner. PopiScan will detect faces, identify consent conflicts, and generate blurred/pixelated downloads with <strong>zero internet connectivity</strong>.
+            </p>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 2: BROWSER SANDBOX & PRIVACY ================= -->
+        <section id="section-sandbox" class="legal-section">
+          <h3>🔒 How PopiScan Stays 100% In-Browser: The Sandbox Architecture</h3>
+          <p>
+            Modern web browsers enforce strict security boundaries known as the <strong>Web Application Sandbox</strong>. PopiScan leverages this architecture to create an ironclad privacy perimeter around your media files:
+          </p>
+          <ul>
+            <li>
+              <strong>Volatile Memory Execution (RAM Only):</strong> When photos are dropped onto the interface, they are parsed via the browser's native <code>FileReader.readAsDataURL()</code> and <code>URL.createObjectURL()</code> interfaces. The binary data is held temporarily in browser memory and is freed via JavaScript garbage collection as soon as the tab is closed or cleared. No temporary files are written to server hard drives.
+            </li>
+            <li>
+              <strong>Origin-Isolated Storage (Zero Cloud DB):</strong> Your POPIA Consent Registry (the names, legal statuses, and IDs of students, staff, or attendees) resides exclusively inside the browser's <code>window.localStorage</code> partition. This storage is keyed to your origin (<code>popiscan.co.za</code>) on your physical machine. We do not have a user account system, a remote SQL database, or an administrative backend.
+            </li>
+            <li>
+              <strong>Zero Egress Network Boundary:</strong> The PopiScan web server is an ultra-lean Alpine Nginx static server whose only function is serving pre-compiled HTML, CSS, and JS files on initial page load. Once loaded into your browser, PopiScan initiates <strong>0 HTTP POST, PUT, or WebSocket connections</strong>. There are no analytics trackers, no advertising beacons, and no telemetry pings.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ================= SECTION 3: ALGORITHM 1 VIOLA-JONES ================= -->
+        <section id="section-viola-jones" class="legal-section">
+          <h3>📐 Algorithm 1: Viola-Jones Detection &amp; The Integral Image Transform</h3>
+          <p>
+            Real-time face detection on high-resolution event photographs (e.g., 24-megapixel DSLR shots) would grind an average laptop or phone to a halt if evaluated pixel-by-pixel. PopiScan solves this using an optimized client-side implementation of the <strong>Viola-Jones Object Detection Framework</strong> with <strong>Haar-like Cascade Classifiers</strong> (via <code>tracking.js</code>).
+          </p>
+
+          <p>
+            Here is the exact mathematics enabling this pipeline to process millions of pixels in milliseconds:
+          </p>
+
+          <!-- Math Card: Integral Image -->
+          <div class="math-card">
+            <div class="math-label">Mathematical Concept #1 — Summed-Area Table (Integral Image)</div>
+            <div class="math-formula">
+              II(x, y) = ∑_{x' ≤ x, y' ≤ y} I(x', y')
+            </div>
+            <div class="math-explanation">
+              <strong>The Problem:</strong> Evaluating whether a region contains facial features requires summing the brightness of hundreds of thousands of rectangular pixel sub-windows.<br>
+              <strong>The Solution:</strong> In a single pre-processing pass, PopiScan converts the canvas image into an <em>Integral Image</em> $II(x,y)$, where each coordinate stores the sum of all pixels above and to the left of $(x,y)$.
+            </div>
+          </div>
+
+          <p>
+            Using the recurrence relations below, the Integral Image is constructed in a single linear $O(N)$ sweep across the image buffer:
+          </p>
+
+          <div class="math-card">
+            <div class="math-label">Single-Pass Recurrence Relations</div>
+            <div class="math-formula">
+              s(x, y) = s(x, y - 1) + I(x, y)
+            </div>
+            <div class="math-formula">
+              II(x, y) = II(x - 1, y) + s(x, y)
+            </div>
+            <div class="math-explanation">
+              Where $s(x,y)$ is the cumulative row sum, with initial condition $s(x, -1) = 0$ and $II(-1, y) = 0$.
+            </div>
+          </div>
+
+          <!-- Constant Time Area Evaluation -->
+          <div class="math-card">
+            <div class="math-label">Mathematical Concept #2 — O(1) Constant-Time Rectangular Area Lookup</div>
+            <div class="math-formula">
+              AreaSum(R) = II(D) - II(B) - II(C) + II(A)
+            </div>
+            <div class="math-explanation">
+              Given any arbitrary rectangle $R$ defined by corners $A(x_1, y_1)$, $B(x_2, y_1)$, $C(x_1, y_2)$, and $D(x_2, y_2)$, the total sum of all pixel values inside $R$ is computed with exactly <strong>4 memory lookups and 3 arithmetic operations</strong>. This achieves true $O(1)$ constant time complexity, completely independent of whether the face is 20 pixels or 2,000 pixels wide.
+            </div>
+          </div>
+
+          <p><strong>Haar-Like Contrast Features:</strong></p>
+          <p>
+            Human faces share universal biological lighting signatures: the bridge of the nose is consistently brighter than the flanking eye sockets, and the upper forehead is brighter than the brow ridge. PopiScan applies rectangular Haar wavelet filters:
+          </p>
+          <ul>
+            <li><strong>Two-Rectangle Filters:</strong> Measures the differential contrast $f = \sum_{\text{dark}} I - \sum_{\text{light}} I$ between horizontally or vertically adjacent bands.</li>
+            <li><strong>Three-Rectangle Filters:</strong> Computes the difference between a central strip and two surrounding regions (ideal for the nose bridge and eye line).</li>
+            <li><strong>Four-Rectangle Diagonal Filters:</strong> Evaluates diagonal shear transitions across cheekbones and jaw contours.</li>
+          </ul>
+
+          <!-- AdaBoost and Cascade -->
+          <div class="math-card">
+            <div class="math-label">Mathematical Concept #3 — AdaBoost Classifier &amp; Attentional Cascade</div>
+            <div class="math-formula">
+              H(x) = \text{sign}\left(\sum_{t=1}^T \alpha_t h_t(x) - \theta\right), \quad \text{where } \alpha_t = \frac{1}{2} \ln\left(\frac{1 - \epsilon_t}{\epsilon_t}\right)
+            </div>
+            <div class="math-explanation">
+              In a typical $24 \times 24$ pixel sub-window, there are over 160,000 possible Haar feature combinations. The <strong>AdaBoost</strong> algorithm selects a compact sequence of the most discriminative "weak learners" $h_t(x)$ with optimal weights $\alpha_t$ based on training error $\epsilon_t$.<br><br>
+              These classifiers are structured as a <strong>degenerate decision tree cascade</strong>: Stage 1 uses just 2 Haar features to reject ~50% of non-face background windows in sub-microsecond time. Over 99% of background candidates are rejected within the first 3 stages, dedicating CPU power only to genuine face candidates.
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 4: ALGORITHM 2 EMBEDDINGS ================= -->
+        <section id="section-embeddings" class="legal-section">
+          <h3>🧠 Algorithm 2: Biometric Vector Embeddings &amp; Hypersphere Metric Learning</h3>
+          <p>
+            For advanced identity matching across the consent roster, PopiScan's codebase stages deep convolutional feature extractors (via <code>face-api.js</code> MobileNet / ResNet-34 backbones running via WebGL/WebAssembly).
+          </p>
+          <p>
+            Rather than storing sensitive facial photos, modern neural architectures convert facial geometry into a compact mathematical point in a high-dimensional vector space:
+          </p>
+
+          <div class="math-card">
+            <div class="math-label">Mathematical Concept #4 — 128-Dimensional Unit Hypersphere Projection</div>
+            <div class="math-formula">
+              f: \mathbb{R}^{W \times H \times 3} \longrightarrow \mathbb{R}^{128}, \quad \text{subject to } \|f(x)\|_2 = \sqrt{\sum_{i=1}^{128} f_i(x)^2} = 1
+            </div>
+            <div class="math-explanation">
+              The neural network maps an aligned face image into a <strong>128-dimensional Euclidean feature vector</strong> constrained to the surface of a unit hypersphere $\mathbb{S}^{127}$. In this latent space, distances correspond directly to identity similarity, regardless of lighting, pose, or expression.
+            </div>
+          </div>
+
+          <p>
+            The feature extractor is trained using the <strong>Triplet Margin Loss</strong> function, which enforces that biometric vectors of the same individual cluster tightly together while pushing different individuals far apart:
+          </p>
+
+          <div class="math-card">
+            <div class="math-label">Mathematical Concept #5 — Triplet Margin Loss Formulation</div>
+            <div class="math-formula">
+              \mathcal{L}(A, P, N) = \max\left(0, \; \|f(A) - f(P)\|_2^2 - \|f(A) - f(N)\|_2^2 + \alpha\right)
+            </div>
+            <div class="math-explanation">
+              Where $A$ is an <strong>Anchor</strong> face, $P$ is a <strong>Positive</strong> face (same person), $N$ is a <strong>Negative</strong> face (different person), and $\alpha$ is the minimum enforced safety margin.
+            </div>
+          </div>
+
+          <p><strong>Identity Verification via Metric Distances:</strong></p>
+          <p>
+            When matching detected faces against the local consent roster, PopiScan compares the extracted vector $\mathbf{u}$ against enrolled vectors $\mathbf{v}$ using Euclidean Distance and Cosine Similarity:
+          </p>
+
+          <div class="math-card">
+            <div class="math-label">Euclidean L2 Distance &amp; Cosine Metric</div>
+            <div class="math-formula">
+              d(\mathbf{u}, \mathbf{v}) = \sqrt{\sum_{i=1}^{128} (u_i - v_i)^2} \quad \text{and} \quad \text{sim}(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2} = \cos(\theta)
+            </div>
+            <div class="math-explanation">
+              For normalized vectors on the unit hypersphere, Euclidean distance and Cosine similarity are mathematically equivalent: $d(\mathbf{u}, \mathbf{v})^2 = 2 - 2\cos(\theta)$. A threshold cutoff of $d < 0.6$ establishes a statistically confident match.
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 5: ALGORITHM 3 REDACTION ================= -->
+        <section id="section-redaction" class="legal-section">
+          <h3>🎨 Algorithm 3: Canvas Redaction Mathematics &amp; Irreversible Anonymization</h3>
+          <p>
+            When a subject is flagged as <code>RESTRICTED</code> (e.g. parental consent withheld under POPIA Section 35), PopiScan allows one-click privacy sanitization directly onto the HTML5 Canvas before exporting. The math behind each redaction mode ensures irreversible anonymization:
+          </p>
+
+          <div class="math-card">
+            <div class="math-label">1. Gaussian Spatial Blur (Frequency Low-Pass Convolution)</div>
+            <div class="math-formula">
+              I_{\text{blur}}(x, y) = \iint I(x - u, y - v) \cdot \frac{1}{2\pi \sigma^2} e^{-\frac{u^2 + v^2}{2\sigma^2}} \, du \, dv
+            </div>
+            <div class="math-explanation">
+              In the frequency domain via Fourier Transform, $\mathcal{F}\{I_{\text{blur}}\} = \mathcal{F}\{I\} \cdot \mathcal{F}\{G\}$. Applying a 16px Gaussian kernel acts as an aggressive low-pass filter that eradicates high spatial frequencies. Biometric edge features, iris geometry, and contour gradients are mathematically destroyed, preventing neural feature extractors from identifying the subject.
+            </div>
+          </div>
+
+          <div class="math-card">
+            <div class="math-label">2. Spatial Downsampling &amp; Mosaic (Pixelation)</div>
+            <div class="math-formula">
+              \bar{C}_{\text{cell}} = \frac{1}{B^2} \sum_{u=0}^{B-1} \sum_{v=0}^{B-1} C(x_0 + u, y_0 + v)
+            </div>
+            <div class="math-explanation">
+              The face bounding box is subdivided into discrete spatial grids of size $B = \max(8, \lfloor W_{\text{face}} / 10 \rfloor)$. Every pixel within each cell is replaced by the arithmetic mean color $\bar{C}_{\text{cell}}$. This drops the spatial resolution well below the Nyquist-Shannon sampling limit required for facial recognition.
+            </div>
+          </div>
+
+          <div class="math-card">
+            <div class="math-label">3. Cryptographic Pixel Overwrite (Opaque Black Mask)</div>
+            <div class="math-formula">
+              \text{PixelBuffer}[4(y \cdot W + x) + c] \longleftarrow \text{RGBA}(10, 12, 16, 255)
+            </div>
+            <div class="math-explanation">
+              PopiScan uses <code>ctx.fillRect()</code> to directly overwrite the underlying <code>Uint8ClampedArray</code> memory buffer. The original pixel data is completely destroyed in RAM before the sanitized image is compiled via <code>canvas.toDataURL('image/jpeg', 0.92)</code>. Because the original bytes no longer exist in the exported file, no algorithmic "unblurring" tool or inverse neural network can ever recover the redacted face.
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 6: COMPARISON TABLE ================= -->
+        <section id="section-comparison" class="legal-section">
+          <h3>⚖️ Architectural Comparison: PopiScan vs. Cloud-Based Vision APIs</h3>
+          <p>
+            The table below contrasts PopiScan's browser-first model against conventional cloud-hosted artificial intelligence services (such as AWS Rekognition, Google Cloud Vision, or Azure Face API):
+          </p>
+
+          <div class="comp-table-wrap">
+            <table class="comp-table">
+              <thead>
+                <tr>
+                  <th>Compliance &amp; Security Vector</th>
+                  <th>PopiScan (Client-Side)</th>
+                  <th>Cloud AI APIs (AWS / Google / Azure)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Photo Ingestion &amp; Egress</strong></td>
+                  <td><span class="comp-badge-good">Zero Upload</span> — Stays in local RAM</td>
+                  <td><span class="comp-badge-bad">Full Ingestion</span> — Photos uploaded over WAN</td>
+                </tr>
+                <tr>
+                  <td><strong>Server-Side Storage Risk</strong></td>
+                  <td><span class="comp-badge-good">0 Bytes</span> — No database or storage bucket</td>
+                  <td><span class="comp-badge-bad">High</span> — Images cached in cloud object storage</td>
+                </tr>
+                <tr>
+                  <td><strong>POPIA Section 19 Breach Exposure</strong></td>
+                  <td><span class="comp-badge-good">Zero Attack Surface</span> — Nothing to breach</td>
+                  <td><span class="comp-badge-bad">Severe</span> — Centralized cloud honeypot vulnerability</td>
+                </tr>
+                <tr>
+                  <td><strong>POPIA Section 35 (Child Biometrics)</strong></td>
+                  <td><span class="comp-badge-good">Protected</span> — Minors' photos never leave custody</td>
+                  <td><span class="comp-badge-bad">High Risk</span> — Third-party processing of special data</td>
+                </tr>
+                <tr>
+                  <td><strong>POPIA Section 72 (Cross-Border Transfer)</strong></td>
+                  <td><span class="comp-badge-good">100% Domestic</span> — Executes on user's device</td>
+                  <td><span class="comp-badge-bad">Non-Compliant</span> unless strict adequacy agreements exist</td>
+                </tr>
+                <tr>
+                  <td><strong>Offline Capability</strong></td>
+                  <td><span class="comp-badge-good">Full Offline</span> — Works in Airplane Mode</td>
+                  <td><span class="comp-badge-bad">None</span> — Requires active high-speed internet</td>
+                </tr>
+                <tr>
+                  <td><strong>Cost &amp; Metering</strong></td>
+                  <td><span class="comp-badge-good">100% Free &amp; Open Source (GPLv3)</span></td>
+                  <td><span class="comp-badge-bad">Per-Image API Billing</span> ($1.00 – $2.50 per 1,000 scans)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ================= SECTION 7: POPIA STATUTORY GROUNDING ================= -->
+        <section id="section-popia" class="legal-section">
+          <h3>🇿🇦 Legal Grounding Under POPIA (Act 4 of 2013)</h3>
+          <p>
+            PopiScan was specifically engineered to address the statutory obligations imposed upon schools, religious institutions, athletic clubs, and corporate event organizers under South African privacy law:
+          </p>
+          <ul>
+            <li>
+              <strong>Section 19 (Security Measures on Integrity and Confidentiality):</strong> Responsible Parties are legally obligated to secure personal information against unlawful access, destruction, or disclosure. By processing photos strictly on the user's hardware without intermediate cloud relays, PopiScan completely removes the risk of cloud database leaks, employee credential theft, or S3 bucket exposure.
+            </li>
+            <li>
+              <strong>Section 35 (Prohibition on Processing Personal Information of Children):</strong> Section 35 strictly forbids the processing of personal and biometric information concerning a minor child unless carried out with the prior consent of a competent person (parent or legal guardian). PopiScan enables administrators to identify and sanitize opted-out children before event albums are published, without ever exposing those children's photos to third-party cloud infrastructure.
+            </li>
+            <li>
+              <strong>Section 72 (Transborder Information Flows):</strong> Transferring biometric data outside the Republic of South Africa requires satisfying stringent statutory conditions (such as binding agreements or foreign privacy adequacy). PopiScan performs 100% of calculations within your local machine, completely eliminating cross-border data transfer liabilities.
+            </li>
+          </ul>
+        </section>
+
+        <!-- ================= SECTION 8: HOW TO AUDIT YOURSELF ================= -->
+        <section id="section-audit" class="legal-section">
+          <h3>🔍 How to Verify PopiScan's Privacy Guarantee Yourself</h3>
+          <p>
+            You do not need to take our word for it. PopiScan is designed to be fully verifiable by any privacy officer, IT administrator, or security auditor in under 60 seconds:
+          </p>
+
+          <div class="audit-steps-box">
+            <ol>
+              <li><strong>Open Browser Developer Tools:</strong> Press <kbd>F12</kbd> (or <kbd>Ctrl + Shift + I</kbd> on Windows/Linux, <kbd>Cmd + Option + I</kbd> on Mac).</li>
+              <li><strong>Switch to the Network Tab:</strong> Click on the <strong>Network</strong> tab in Developer Tools and filter by <strong>Fetch/XHR</strong>.</li>
+              <li><strong>Process a Batch of Photos:</strong> Drag a batch of high-resolution images into PopiScan and watch the scanner analyze faces.</li>
+              <li><strong>Inspect Outbound Traffic:</strong> Observe that <strong>zero HTTP requests</strong> are dispatched. The network activity monitor remains completely blank.</li>
+              <li><strong>Review the Source Code:</strong> Inspect the open-source client codebase on <a href="https://github.com/methinked/popiscan" target="_blank" rel="noopener noreferrer">GitHub</a>. Every line of code running in your browser is licensed under GPLv3.</li>
+            </ol>
+          </div>
+
+          <div style="border-top: 1px solid var(--border); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 28px;">
+            <a href="index.html" class="btn btn-primary">← Back to Batch Scanner</a>
+            <a href="liability.html" class="btn btn-outline">⚖️ Read Legal &amp; Liability Disclaimer</a>
+            <button onclick="window.print()" class="btn btn-ghost">🖨️ Print / Save Copy (PDF)</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>PopiScan • <strong>popiscan.co.za</strong> • POPIA Compliance Face Suite • 100% In-Browser Privacy Protection</div>
+      <div class="footer-links">
+        <a href="index.html" class="footer-link">Batch Scanner</a> • 
+        <a href="how-it-works.html" class="footer-link">How It Works</a> • 
+        <a href="liability.html" class="footer-link">Liability &amp; Legal Disclaimer</a> • 
+        <a href="https://github.com/methinked/popiscan" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Source &amp; Audit</a> • 
+        <span>Zero External Calls</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
