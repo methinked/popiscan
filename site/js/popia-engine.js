@@ -16,6 +16,17 @@
   let activeInspectedPhoto = null;
   let activeRedactionType = null; // 'blur', 'mask', 'pixel'
 
+  /** Escape untrusted strings before inserting into innerHTML. */
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // Helper to create clean procedural SVG avatars
   function createProceduralAvatar(name, accentColor) {
     const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2);
@@ -324,11 +335,9 @@
         }
 
         detectFacesInImage(img).then(detectedFaces => {
-          if (!detectedFaces || detectedFaces.length === 0) {
-            detectedFaces = generateFallbackFaceDetections(width, height);
-          }
-
-          const matchedFaces = matchFacesAgainstRoster(detectedFaces, img);
+          // No synthetic faces: empty detection stays empty (no fake boxes/confidence).
+          const faces = detectedFaces || [];
+          const matchedFaces = matchFacesAgainstRoster(faces, img);
           const compliance = evaluatePhotoCompliance(matchedFaces);
 
           resolve({
@@ -388,12 +397,7 @@
     });
   }
 
-  function generateFallbackFaceDetections(w, h) {
-    return [
-      { x: Math.round(w * 0.25), y: Math.round(h * 0.2), width: Math.round(w * 0.2), height: Math.round(w * 0.2) },
-      { x: Math.round(w * 0.55), y: Math.round(h * 0.22), width: Math.round(w * 0.2), height: Math.round(w * 0.2) }
-    ];
-  }
+  // generateFallbackFaceDetections removed: do not invent face boxes when detection returns [].
 
   function matchFacesAgainstRoster(detectedFaces, imgElement) {
     return detectedFaces.map((f, idx) => {
@@ -600,7 +604,7 @@
       } else {
         grid.innerHTML = `<div class="empty-state">
           <div class="empty-icon">🔍</div>
-          <div class="empty-title">No photos match filter "${currentFilter}"</div>
+          <div class="empty-title">No photos match filter "${escapeHtml(currentFilter)}"</div>
           <p class="empty-desc">Switch filters or upload new event pictures.</p>
         </div>`;
       }
@@ -622,6 +626,8 @@
         badgeText = '🛡️ Redacted (Safe)';
       }
 
+      const safeId = escapeHtml(photo.id);
+      const safeFilename = escapeHtml(photo.filename);
       const matchTags = photo.faces.map(f => {
         let tagClass = 'face-tag-consented';
         let icon = '✓';
@@ -632,28 +638,28 @@
           tagClass = 'face-tag-unknown';
           icon = '🔒';
         }
-        return `<span class="face-tag ${tagClass}">${icon} ${f.matchedName}</span>`;
+        return `<span class="face-tag ${tagClass}">${icon} ${escapeHtml(f.matchedName)}</span>`;
       }).join('');
 
       return `
-        <div class="photo-card" data-id="${photo.id}">
-          <div class="photo-thumb-wrap" onclick="window.PhotoMatchEngine.openInspector('${photo.id}')">
-            <img src="${photo.currentDataUrl}" alt="${photo.filename}">
+        <div class="photo-card" data-id="${safeId}">
+          <div class="photo-thumb-wrap" onclick="window.PhotoMatchEngine.openInspector('${safeId}')">
+            <img src="${photo.currentDataUrl}" alt="${safeFilename}">
             <span class="photo-status-badge ${badgeClass}">${badgeText}</span>
           </div>
           <div class="photo-info">
             <div class="photo-title-row">
-              <div class="photo-filename" title="${photo.filename}">${photo.filename}</div>
+              <div class="photo-filename" title="${safeFilename}">${safeFilename}</div>
               <span class="photo-face-count">${photo.faces.length} face(s)</span>
             </div>
             <div class="photo-matches-taglist">
               ${matchTags}
             </div>
             <div class="photo-card-actions">
-              <button class="btn btn-secondary btn-sm" onclick="window.PhotoMatchEngine.openInspector('${photo.id}')">Inspect</button>
+              <button class="btn btn-secondary btn-sm" onclick="window.PhotoMatchEngine.openInspector('${safeId}')">Inspect</button>
               ${photo.compliance === 'VIOLATION' && !photo.redacted ?
-                `<button class="btn btn-danger btn-sm" onclick="window.PhotoMatchEngine.quickRedact('${photo.id}')">Sanitize</button>` :
-                `<a class="btn btn-outline btn-sm" href="${photo.currentDataUrl}" download="compliant_${photo.filename}">Download</a>`
+                `<button class="btn btn-danger btn-sm" onclick="window.PhotoMatchEngine.quickRedact('${safeId}')">Sanitize</button>` :
+                `<a class="btn btn-outline btn-sm" href="${photo.currentDataUrl}" download="compliant_${safeFilename}">Download</a>`
               }
             </div>
           </div>
@@ -682,8 +688,8 @@
     faceListEl.innerHTML = photo.faces.map(f => `
       <div class="face-item ${f.consent === 'RESTRICTED' ? 'restricted' : (f.consent === 'CONSENTED' ? 'consented' : '')}">
         <div class="face-item-info">
-          <div class="face-item-name">${f.matchedName}</div>
-          <div class="face-item-status">Status: <strong>${f.consent}</strong> • Match: ${Math.round(f.confidence * 100)}%</div>
+          <div class="face-item-name">${escapeHtml(f.matchedName)}</div>
+          <div class="face-item-status">Status: <strong>${escapeHtml(f.consent)}</strong> • Match: ${Math.round(f.confidence * 100)}%</div>
         </div>
       </div>
     `).join('');
@@ -876,15 +882,17 @@
         badgeLabel = '⚠️ Internal Only';
       }
 
+      const safeName = escapeHtml(sub.name);
+      const safeId = escapeHtml(sub.id);
       return `
         <div class="roster-card">
-          <img class="roster-avatar ${avatarClass}" src="${sub.avatarUrl}" alt="${sub.name}">
+          <img class="roster-avatar ${avatarClass}" src="${sub.avatarUrl}" alt="${safeName}">
           <div class="roster-details">
-            <div class="roster-name" title="${sub.name}">${sub.name}</div>
-            <div class="roster-id">${sub.id}</div>
+            <div class="roster-name" title="${safeName}">${safeName}</div>
+            <div class="roster-id">${safeId}</div>
             <span class="roster-badge ${badgeClass}">${badgeLabel}</span>
           </div>
-          <button class="roster-btn-del" onclick="window.PhotoMatchEngine.deleteSubject('${sub.id}')" title="Delete Subject">&times;</button>
+          <button class="roster-btn-del" onclick="window.PhotoMatchEngine.deleteSubject('${safeId}')" title="Delete Subject">&times;</button>
         </div>
       `;
     }).join('');
@@ -952,14 +960,14 @@
     }
 
     tbody.innerHTML = scannedPhotos.map(p => {
-      const matchNames = p.faces.map(f => `${f.matchedName} (${f.consent})`).join(', ');
+      const matchNames = p.faces.map(f => `${escapeHtml(f.matchedName)} (${escapeHtml(f.consent)})`).join(', ');
       let resultBadge = p.compliance === 'PASSED' ? '<span class="face-tag face-tag-consented">PASSED</span>' :
                        (p.compliance === 'VIOLATION' ? '<span class="face-tag face-tag-restricted">VIOLATION</span>' : '<span class="face-tag face-tag-unknown">REVIEW</span>');
       let actionTaken = p.redacted ? 'Anonymized & Redacted via Canvas Pixelation' : (p.compliance === 'PASSED' ? 'Cleared for Public Release' : 'Quarantined / Release Blocked');
 
       return `
         <tr>
-          <td><strong>${p.filename}</strong></td>
+          <td><strong>${escapeHtml(p.filename)}</strong></td>
           <td>${p.faces.length}</td>
           <td>${matchNames || 'None'}</td>
           <td>${resultBadge}</td>
